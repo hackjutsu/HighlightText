@@ -18,7 +18,10 @@ const panelHTML = `
     <div id="highlights-panel" style="display: none;">
         <div class="panel-header">
             <span>Highlights</span>
-            <button class="close-panel">×</button>
+            <div class="panel-controls">
+                <button class="download-highlights" title="Download highlights">📥</button>
+                <button class="close-panel">×</button>
+            </div>
         </div>
         <div class="highlights-list"></div>
     </div>
@@ -105,6 +108,22 @@ style.textContent = `
     }
     .highlight-item:hover {
         opacity: 0.8;
+    }
+    .panel-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    .download-highlights {
+        border: none;
+        background: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: #666;
+        padding: 4px;
+    }
+    .download-highlights:hover {
+        color: #000;
     }
 `;
 document.head.appendChild(style);
@@ -384,6 +403,46 @@ panel.querySelector('.close-panel').addEventListener('click', () => {
     panel.style.display = 'none';
     savePanelState(false);
 });
+
+// Update download functionality
+function downloadHighlights() {
+    const highlights = [];
+    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
+        highlights.push(span.textContent);
+    });
+
+    // Create metadata and content
+    const metadata = {
+        url: window.location.href,
+        title: document.title,
+        date: new Date().toLocaleString(),
+        totalHighlights: highlights.length
+    };
+
+    // Create text content with metadata
+    const content = [
+        `URL: ${metadata.url}`,
+        `Page Title: ${metadata.title}`,
+        `Date: ${metadata.date}`,
+        `Number of Highlights: ${metadata.totalHighlights}`,
+        '\nHighlights:',
+        ...highlights.map((text, index) => `\n${index + 1}. "${text}"`)
+    ].join('\n');
+
+    // Create download link
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `highlights-${document.title.slice(0, 30)}-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Add click handler for download button
+panel.querySelector('.download-highlights').addEventListener('click', downloadHighlights);
 
 // Add to your initialization code (where you have setTimeout for restoreHighlights)
 setTimeout(() => {
