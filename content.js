@@ -98,12 +98,31 @@ document.addEventListener('mouseup', function(e) {
             range: selection.getRangeAt(0).cloneRange(),
             text: selection.toString()
         };
-        currentHighlightedSpan = null; // Clear any existing highlight
+        currentHighlightedSpan = null;
 
-        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        // Position popup near the mouse cursor
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const popupWidth = popup.offsetWidth;
+        const popupHeight = popup.offsetHeight;
+        
+        // Calculate position, keeping popup within viewport
+        let left = e.clientX;
+        let top = e.clientY + 20; // 20px below cursor
+        
+        // Adjust if popup would overflow right edge
+        if (left + popupWidth > viewportWidth) {
+            left = viewportWidth - popupWidth - 10;
+        }
+        
+        // Adjust if popup would overflow bottom edge
+        if (top + popupHeight > viewportHeight) {
+            top = e.clientY - popupHeight - 10; // Show above cursor
+        }
+        
         popup.style.display = 'block';
-        popup.style.left = `${rect.left + window.scrollX}px`;
-        popup.style.top = `${rect.bottom + window.scrollY + 5}px`;
+        popup.style.left = `${left + window.scrollX}px`;
+        popup.style.top = `${top + window.scrollY}px`;
     }
 });
 
