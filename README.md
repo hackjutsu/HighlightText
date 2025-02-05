@@ -23,16 +23,7 @@ The highlight storage and reload feature works on most websites but has some lim
 - Most content-based websites
 
 ### Limited or No Support:
-- GitHub README files (due to Content Security Policy)
-- Single Page Applications (SPAs) with dynamic routing
-- Sites with strict Content Security Policies (CSPs)
-- Sites that dynamically load or modify content
-- PDF files viewed in browser
-
-### Technical Notes:
-- Highlights are stored based on exact text matching and DOM element paths
-- Page modifications or content updates may prevent highlights from being restored
-- Some websites may block content modification due to security policies
+The text storage and reload feature does not work on some websites.
 
 ## How to install
 
