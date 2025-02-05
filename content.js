@@ -2,10 +2,10 @@
 const popupHTML = `
     <div id="highlight-popup" style="display: none; position: absolute; background: white; 
         border: 1px solid #ccc; border-radius: 4px; padding: 5px; box-shadow: 2px 2px 10px rgba(0,0,0,0.2);">
-        <div class="color-option" data-color="#ffeb3b" style="background: #ffeb3b"></div>
-        <div class="color-option" data-color="#4caf50" style="background: #4caf50"></div>
-        <div class="color-option" data-color="#f44336" style="background: #f44336"></div>
-        <div class="color-option" data-color="#2196f3" style="background: #2196f3"></div>
+        <div class="color-option" data-color="rgba(255, 235, 59, 0.3)" style="background: rgba(255, 235, 59, 0.3)"></div>
+        <div class="color-option" data-color="rgba(76, 175, 80, 0.3)" style="background: rgba(76, 175, 80, 0.3)"></div>
+        <div class="color-option" data-color="rgba(244, 67, 54, 0.3)" style="background: rgba(244, 67, 54, 0.3)"></div>
+        <div class="color-option" data-color="rgba(33, 150, 243, 0.3)" style="background: rgba(33, 150, 243, 0.3)"></div>
     </div>
 `;
 document.body.insertAdjacentHTML('beforeend', popupHTML);
