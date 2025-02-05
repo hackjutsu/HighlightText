@@ -5,7 +5,8 @@
   "description": "Highlight selected text on any webpage",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "contextMenus"
   ],
   "action": {
     "default_icon": {
@@ -24,5 +25,8 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"]
     }
-  ]
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
 } 

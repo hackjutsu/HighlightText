@@ -13,6 +13,18 @@ const popupHTML = `
 `;
 document.body.insertAdjacentHTML('beforeend', popupHTML);
 
+// Add at the beginning of your content.js, after the popup HTML
+const panelHTML = `
+    <div id="highlights-panel" style="display: none;">
+        <div class="panel-header">
+            <span>Highlights</span>
+            <button class="close-panel">×</button>
+        </div>
+        <div class="highlights-list"></div>
+    </div>
+`;
+document.body.insertAdjacentHTML('beforeend', panelHTML);
+
 // Add styles for the color options
 const style = document.createElement('style');
 style.textContent = `
@@ -49,6 +61,50 @@ style.textContent = `
     .remove-highlight:hover {
         transform: scale(1.1);
         background: #fff0f0;
+    }
+    #highlights-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 100vh;
+        background: white;
+        box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+    }
+    .panel-header {
+        padding: 10px;
+        background: #f5f5f5;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .close-panel {
+        border: none;
+        background: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #666;
+    }
+    .close-panel:hover {
+        color: #000;
+    }
+    .highlights-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+    }
+    .highlight-item {
+        padding: 8px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .highlight-item:hover {
+        opacity: 0.8;
     }
 `;
 document.head.appendChild(style);
@@ -266,4 +322,58 @@ document.addEventListener('mousedown', function(e) {
 });
 
 // Restore highlights immediately
-setTimeout(restoreHighlights, 500); // Small delay to ensure page content is loaded 
+setTimeout(restoreHighlights, 500); // Small delay to ensure page content is loaded
+
+// Add panel functionality
+const panel = document.getElementById('highlights-panel');
+const highlightsList = panel.querySelector('.highlights-list');
+
+// Function to update highlights list
+function updateHighlightsList() {
+    highlightsList.innerHTML = '';
+    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
+        const item = document.createElement('div');
+        item.className = 'highlight-item';
+        item.textContent = span.textContent;
+        item.style.backgroundColor = span.style.backgroundColor;
+        
+        // Scroll to highlight when clicked
+        item.addEventListener('click', () => {
+            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            span.style.transition = 'background-color 0.3s';
+            const originalColor = span.style.backgroundColor;
+            span.style.backgroundColor = 'rgba(255, 255, 0, 0.8)';
+            setTimeout(() => {
+                span.style.backgroundColor = originalColor;
+            }, 1000);
+        });
+        
+        highlightsList.appendChild(item);
+    });
+}
+
+// Handle panel toggle
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "toggleHighlightsPanel") {
+        if (panel.style.display === 'none') {
+            panel.style.display = 'flex';
+            updateHighlightsList();
+        } else {
+            panel.style.display = 'none';
+        }
+    }
+});
+
+// Close panel button
+panel.querySelector('.close-panel').addEventListener('click', () => {
+    panel.style.display = 'none';
+});
+
+// Update highlights list when changes occur
+const originalSaveHighlights = saveHighlights;
+saveHighlights = function() {
+    originalSaveHighlights();
+    if (panel.style.display !== 'none') {
+        updateHighlightsList();
+    }
+}; 
