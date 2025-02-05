@@ -61,10 +61,14 @@ let currentSelection = null;
 
 // Show popup when hovering over highlighted text
 document.addEventListener('mouseover', function(e) {
+    // Don't show hover menu if there's an active text selection
+    const selection = window.getSelection();
+    if (selection.toString().length > 0) return;
+
     const target = e.target.closest('span[style*="background-color"]');
     if (target) {
         currentHighlightedSpan = target;
-        currentSelection = null; // Clear any existing selection
+        currentSelection = null;
         const rect = target.getBoundingClientRect();
         
         popup.style.display = 'block';
