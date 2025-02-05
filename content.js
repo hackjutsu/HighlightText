@@ -188,6 +188,14 @@ popup.addEventListener('mouseleave', function() {
 document.addEventListener('mouseup', function(e) {
     const selection = window.getSelection();
     
+    // Skip if selection was made by double click
+    if (e.detail > 1) {
+        popup.style.display = 'none';
+        currentSelection = null;
+        currentHighlightedSpan = null;
+        return;
+    }
+    
     if (selection.toString().length > 0 && !popup.contains(e.target)) {
         // Store the selection
         currentSelection = {
