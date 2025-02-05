@@ -101,13 +101,30 @@ style.textContent = `
         padding: 10px;
     }
     .highlight-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         padding: 8px;
         margin-bottom: 8px;
         border-radius: 4px;
-        cursor: pointer;
     }
-    .highlight-item:hover {
-        opacity: 0.8;
+    .highlight-text {
+        flex-grow: 1;
+        cursor: pointer;
+        margin-right: 8px;
+    }
+    .highlight-delete {
+        border: none;
+        background: none;
+        font-size: 18px;
+        cursor: pointer;
+        color: #666;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+    .highlight-delete:hover {
+        color: #f44336;
+        background: rgba(244, 67, 54, 0.1);
     }
     .panel-controls {
         display: flex;
@@ -352,11 +369,19 @@ function updateHighlightsList() {
     document.querySelectorAll('span[style*="background-color"]').forEach(span => {
         const item = document.createElement('div');
         item.className = 'highlight-item';
-        item.textContent = span.textContent;
-        item.style.backgroundColor = span.style.backgroundColor;
         
-        // Scroll to highlight when clicked
-        item.addEventListener('click', () => {
+        // Create container for text and delete button
+        const textContainer = document.createElement('div');
+        textContainer.className = 'highlight-text';
+        textContainer.textContent = span.textContent;
+        
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'highlight-delete';
+        deleteButton.innerHTML = '×';
+        deleteButton.title = 'Delete highlight';
+        
+        // Add click handlers
+        textContainer.addEventListener('click', () => {
             span.scrollIntoView({ behavior: 'smooth', block: 'center' });
             span.style.transition = 'background-color 0.3s';
             const originalColor = span.style.backgroundColor;
@@ -366,6 +391,15 @@ function updateHighlightsList() {
             }, 1000);
         });
         
+        deleteButton.addEventListener('click', () => {
+            span.outerHTML = span.textContent;
+            saveHighlights();
+            updateHighlightsList();
+        });
+        
+        item.appendChild(textContainer);
+        item.appendChild(deleteButton);
+        item.style.backgroundColor = span.style.backgroundColor;
         highlightsList.appendChild(item);
     });
 }
