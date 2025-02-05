@@ -23,7 +23,7 @@ The highlight storage and reload feature works on most websites but has some lim
 - Most content-based websites
 
 ### Limited or No Support:
-The text storage and reload feature does not work on some websites.
+The text storage and reload feature does not work on some websites or the selection over complex elements(including hyperlinks).
 
 ## How to install
 
