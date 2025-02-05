@@ -321,9 +321,6 @@ document.addEventListener('mousedown', function(e) {
     }
 });
 
-// Restore highlights immediately
-setTimeout(restoreHighlights, 500); // Small delay to ensure page content is loaded
-
 // Add panel functionality
 const panel = document.getElementById('highlights-panel');
 const highlightsList = panel.querySelector('.highlights-list');
@@ -352,28 +349,44 @@ function updateHighlightsList() {
     });
 }
 
-// Handle panel toggle
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "toggleHighlightsPanel") {
-        if (panel.style.display === 'none') {
+// Function to save panel state
+function savePanelState(isVisible) {
+    chrome.storage.local.set({
+        [`${window.location.href}_panel`]: isVisible
+    });
+}
+
+// Function to restore panel state
+function restorePanelState() {
+    chrome.storage.local.get([`${window.location.href}_panel`], function(result) {
+        const isVisible = result[`${window.location.href}_panel`];
+        if (isVisible) {
             panel.style.display = 'flex';
             updateHighlightsList();
-        } else {
-            panel.style.display = 'none';
+        }
+    });
+}
+
+// Update the panel toggle handler
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "toggleHighlightsPanel") {
+        const newDisplay = panel.style.display === 'none' ? 'flex' : 'none';
+        panel.style.display = newDisplay;
+        savePanelState(newDisplay === 'flex');
+        if (newDisplay === 'flex') {
+            updateHighlightsList();
         }
     }
 });
 
-// Close panel button
+// Update the close panel button handler
 panel.querySelector('.close-panel').addEventListener('click', () => {
     panel.style.display = 'none';
+    savePanelState(false);
 });
 
-// Update highlights list when changes occur
-const originalSaveHighlights = saveHighlights;
-saveHighlights = function() {
-    originalSaveHighlights();
-    if (panel.style.display !== 'none') {
-        updateHighlightsList();
-    }
-}; 
+// Add to your initialization code (where you have setTimeout for restoreHighlights)
+setTimeout(() => {
+    restoreHighlights();
+    restorePanelState();
+}, 500); 
