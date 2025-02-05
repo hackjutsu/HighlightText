@@ -107,9 +107,99 @@ document.addEventListener('mouseup', function(e) {
     }
 });
 
+// Function to generate a unique ID for each highlight
+function generateHighlightId() {
+    return `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Function to save highlights to storage
+function saveHighlights() {
+    const highlights = [];
+    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
+        highlights.push({
+            id: span.dataset.highlightId,
+            text: span.textContent,
+            color: span.style.backgroundColor,
+            path: getElementPath(span)
+        });
+    });
+
+    chrome.storage.local.set({
+        [window.location.href]: highlights
+    });
+}
+
+// Function to get unique path to an element
+function getElementPath(element) {
+    const path = [];
+    let current = element;
+    
+    while (current && current !== document.body) {
+        let index = 0;
+        let sibling = current;
+        while (sibling = sibling.previousElementSibling) {
+            if (sibling.tagName === current.tagName) {
+                index++;
+            }
+        }
+        path.unshift(`${current.tagName}:nth-of-type(${index + 1})`);
+        current = current.parentElement;
+    }
+    
+    return path.join(' > ');
+}
+
+// Function to restore highlights from storage
+function restoreHighlights() {
+    chrome.storage.local.get([window.location.href], function(result) {
+        const highlights = result[window.location.href] || [];
+        
+        highlights.forEach(highlight => {
+            try {
+                // Find exact text match
+                const text = highlight.text;
+                const regex = new RegExp(text.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
+                
+                const walker = document.createTreeWalker(
+                    document.body,
+                    NodeFilter.SHOW_TEXT,
+                    {
+                        acceptNode: function(node) {
+                            return node.textContent.match(regex) ? 
+                                NodeFilter.FILTER_ACCEPT : 
+                                NodeFilter.FILTER_REJECT;
+                        }
+                    }
+                );
+
+                let node;
+                while (node = walker.nextNode()) {
+                    const range = document.createRange();
+                    const textContent = node.textContent;
+                    const startIndex = textContent.indexOf(text);
+                    
+                    if (startIndex >= 0) {
+                        range.setStart(node, startIndex);
+                        range.setEnd(node, startIndex + text.length);
+                        
+                        const span = document.createElement('span');
+                        span.style.backgroundColor = highlight.color;
+                        span.dataset.highlightId = highlight.id;
+                        
+                        range.surroundContents(span);
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.log('Could not restore highlight:', error);
+            }
+        });
+    });
+}
+
 // Handle clicks on the popup
 popup.addEventListener('click', function(e) {
-    e.stopPropagation(); // Prevent click from bubbling
+    e.stopPropagation();
 
     if (e.target.classList.contains('color-option')) {
         const color = e.target.dataset.color;
@@ -117,25 +207,27 @@ popup.addEventListener('click', function(e) {
         if (currentHighlightedSpan) {
             // Change color of existing highlight
             currentHighlightedSpan.style.backgroundColor = color;
+            saveHighlights(); // Save after color change
         } else if (currentSelection) {
             // Create new highlight
             const newNode = document.createElement('span');
             newNode.style.backgroundColor = color;
+            newNode.dataset.highlightId = generateHighlightId();
             
             try {
                 const range = currentSelection.range;
                 range.surroundContents(newNode);
+                saveHighlights(); // Save after creating new highlight
             } catch (error) {
                 console.log('Cannot highlight this selection:', error);
             }
         }
     } else if (e.target.classList.contains('remove-highlight') && currentHighlightedSpan) {
-        // Only remove highlight if we're working with an existing highlight
         const textContent = currentHighlightedSpan.textContent;
         currentHighlightedSpan.outerHTML = textContent;
+        saveHighlights(); // Save after removing highlight
     }
 
-    // Hide popup after action
     popup.style.display = 'none';
     currentSelection = null;
     currentHighlightedSpan = null;
@@ -148,4 +240,7 @@ document.addEventListener('mousedown', function(e) {
         currentSelection = null;
         currentHighlightedSpan = null;
     }
-}); 
+});
+
+// Restore highlights immediately
+setTimeout(restoreHighlights, 500); // Small delay to ensure page content is loaded 

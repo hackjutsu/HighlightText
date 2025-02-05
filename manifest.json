@@ -3,7 +3,10 @@
   "name": "Text Highlighter",
   "version": "1.0",
   "description": "Highlight selected text on any webpage",
-  "permissions": ["activeTab"],
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
   "action": {
     "default_icon": {
       "16": "images/icon16.png",
