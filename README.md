@@ -4,6 +4,8 @@
 
 This is a simple Chrome extension that allows you to highlight text on a webpage.
 
+![alt text](screenshot.jpg)
+
 ## How to install
 
 1. Clone the repository
