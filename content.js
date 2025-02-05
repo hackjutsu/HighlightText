@@ -295,7 +295,7 @@ function restoreHighlights() {
     });
 }
 
-// Handle clicks on the popup
+// Update the click handler for the popup
 popup.addEventListener('click', function(e) {
     e.stopPropagation();
 
@@ -306,16 +306,17 @@ popup.addEventListener('click', function(e) {
             // Change color of existing highlight
             currentHighlightedSpan.style.backgroundColor = color;
             saveHighlights(); // Save after color change
+            updateHighlightsList();
         } else if (currentSelection) {
             // Create new highlight
             const newNode = document.createElement('span');
             newNode.style.backgroundColor = color;
-            newNode.dataset.highlightId = generateHighlightId();
             
             try {
                 const range = currentSelection.range;
                 range.surroundContents(newNode);
                 saveHighlights(); // Save after creating new highlight
+                updateHighlightsList();
             } catch (error) {
                 console.log('Cannot highlight this selection:', error);
             }
@@ -324,6 +325,7 @@ popup.addEventListener('click', function(e) {
         const textContent = currentHighlightedSpan.textContent;
         currentHighlightedSpan.outerHTML = textContent;
         saveHighlights(); // Save after removing highlight
+        updateHighlightsList();
     }
 
     popup.style.display = 'none';
