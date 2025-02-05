@@ -227,91 +227,6 @@ function generateHighlightId() {
     return `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-// Function to save highlights to storage
-function saveHighlights() {
-    const highlights = [];
-    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
-        highlights.push({
-            id: span.dataset.highlightId,
-            text: span.textContent,
-            color: span.style.backgroundColor,
-            path: getElementPath(span)
-        });
-    });
-
-    chrome.storage.local.set({
-        [window.location.href]: highlights
-    });
-}
-
-// Function to get unique path to an element
-function getElementPath(element) {
-    const path = [];
-    let current = element;
-    
-    while (current && current !== document.body) {
-        let index = 0;
-        let sibling = current;
-        while (sibling = sibling.previousElementSibling) {
-            if (sibling.tagName === current.tagName) {
-                index++;
-            }
-        }
-        path.unshift(`${current.tagName}:nth-of-type(${index + 1})`);
-        current = current.parentElement;
-    }
-    
-    return path.join(' > ');
-}
-
-// Function to restore highlights from storage
-function restoreHighlights() {
-    chrome.storage.local.get([window.location.href], function(result) {
-        const highlights = result[window.location.href] || [];
-        
-        highlights.forEach(highlight => {
-            try {
-                // Find exact text match
-                const text = highlight.text;
-                const regex = new RegExp(text.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'));
-                
-                const walker = document.createTreeWalker(
-                    document.body,
-                    NodeFilter.SHOW_TEXT,
-                    {
-                        acceptNode: function(node) {
-                            return node.textContent.match(regex) ? 
-                                NodeFilter.FILTER_ACCEPT : 
-                                NodeFilter.FILTER_REJECT;
-                        }
-                    }
-                );
-
-                let node;
-                while (node = walker.nextNode()) {
-                    const range = document.createRange();
-                    const textContent = node.textContent;
-                    const startIndex = textContent.indexOf(text);
-                    
-                    if (startIndex >= 0) {
-                        range.setStart(node, startIndex);
-                        range.setEnd(node, startIndex + text.length);
-                        
-                        const span = document.createElement('span');
-                        span.style.backgroundColor = highlight.color;
-                        span.dataset.highlightId = highlight.id;
-                        
-                        range.surroundContents(span);
-                        break;
-                    }
-                }
-            } catch (error) {
-                console.log('Could not restore highlight:', error);
-            }
-        });
-    });
-}
-
 // Update the click handler for the popup
 popup.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -320,19 +235,26 @@ popup.addEventListener('click', function(e) {
         const color = e.target.dataset.color;
         
         if (currentHighlightedSpan) {
-            // Change color of existing highlight
             currentHighlightedSpan.style.backgroundColor = color;
-            saveHighlights(); // Save after color change
+            saveHighlights();
             updateHighlightsList();
         } else if (currentSelection) {
-            // Create new highlight
-            const newNode = document.createElement('span');
-            newNode.style.backgroundColor = color;
-            
             try {
                 const range = currentSelection.range;
-                range.surroundContents(newNode);
-                saveHighlights(); // Save after creating new highlight
+                const span = document.createElement('span');
+                span.style.backgroundColor = color;
+                
+                // Try to wrap the selection, if it fails, use a fallback method
+                try {
+                    range.surroundContents(span);
+                } catch (e) {
+                    // Fallback: extract and reinsert
+                    const extracted = range.extractContents();
+                    span.appendChild(extracted);
+                    range.insertNode(span);
+                }
+                
+                saveHighlights();
                 updateHighlightsList();
             } catch (error) {
                 console.log('Cannot highlight this selection:', error);
@@ -341,7 +263,7 @@ popup.addEventListener('click', function(e) {
     } else if (e.target.classList.contains('remove-highlight') && currentHighlightedSpan) {
         const textContent = currentHighlightedSpan.textContent;
         currentHighlightedSpan.outerHTML = textContent;
-        saveHighlights(); // Save after removing highlight
+        saveHighlights();
         updateHighlightsList();
     }
 
@@ -484,4 +406,65 @@ panel.querySelector('.download-highlights').addEventListener('click', downloadHi
 setTimeout(() => {
     restoreHighlights();
     restorePanelState();
-}, 500); 
+}, 500);
+
+// Simplified save function
+function saveHighlights() {
+    const highlights = [];
+    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
+        highlights.push({
+            text: span.textContent,
+            color: span.style.backgroundColor
+        });
+    });
+
+    chrome.storage.local.set({
+        [window.location.href]: highlights
+    });
+}
+
+// Simplified restore function
+function restoreHighlights() {
+    chrome.storage.local.get([window.location.href], function(result) {
+        const highlights = result[window.location.href] || [];
+        
+        highlights.forEach(highlight => {
+            try {
+                const walker = document.createTreeWalker(
+                    document.body,
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+
+                let node;
+                while (node = walker.nextNode()) {
+                    if (node.textContent.includes(highlight.text)) {
+                        const range = document.createRange();
+                        const startIndex = node.textContent.indexOf(highlight.text);
+                        range.setStart(node, startIndex);
+                        range.setEnd(node, startIndex + highlight.text.length);
+
+                        const span = document.createElement('span');
+                        span.style.backgroundColor = highlight.color;
+                        
+                        try {
+                            range.surroundContents(span);
+                            break; // Found and highlighted, move to next
+                        } catch (error) {
+                            // Skip if we can't highlight this instance
+                            console.log('Could not restore highlight:', error);
+                        }
+                    }
+                }
+            } catch (error) {
+                // Skip this highlight if it fails
+                console.log('Could not restore highlight:', error);
+            }
+        });
+
+        if (panel.style.display !== 'none') {
+            updateHighlightsList();
+        }
+    });
+} 
