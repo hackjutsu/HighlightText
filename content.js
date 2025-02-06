@@ -151,6 +151,9 @@ let currentHighlightedSpan = null;
 let isMouseOverPopup = false;
 let currentSelection = null;
 
+// Add a unique class to our highlights to distinguish them from other spans
+const HIGHLIGHT_CLASS = 'text-highlighter-extension';
+
 // Show popup when hovering over highlighted text
 document.addEventListener('mouseover', function(e) {
     // Don't show hover menu if there's an active text selection
@@ -271,7 +274,8 @@ popup.addEventListener('click', function(e) {
         
         if (currentHighlightedSpan) {
             currentHighlightedSpan.style.backgroundColor = color;
-            currentHighlightedSpan.dataset.originalColor = color;  // Store original color
+            currentHighlightedSpan.dataset.originalColor = color;
+            currentHighlightedSpan.classList.add(HIGHLIGHT_CLASS);
             saveHighlights();
             updateHighlightsList();
         } else if (currentSelection && isExtensionEnabled) {
@@ -279,7 +283,8 @@ popup.addEventListener('click', function(e) {
                 const range = currentSelection.range;
                 const span = document.createElement('span');
                 span.style.backgroundColor = color;
-                span.dataset.originalColor = color;  // Store original color
+                span.dataset.originalColor = color;
+                span.classList.add(HIGHLIGHT_CLASS);
                 
                 try {
                     range.surroundContents(span);
@@ -323,14 +328,20 @@ const highlightsList = panel.querySelector('.highlights-list');
 // Function to update highlights list
 function updateHighlightsList() {
     highlightsList.innerHTML = '';
-    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
+    // Only select spans with our specific class
+    const highlights = document.querySelectorAll(`span.${HIGHLIGHT_CLASS}`);
+    
+    highlights.forEach(span => {
+        const text = span.textContent.trim();
+        if (!text) return;
+        
         const item = document.createElement('div');
         item.className = 'highlight-item';
         
-        // Create container for text and delete button
         const textContainer = document.createElement('div');
         textContainer.className = 'highlight-text';
-        textContainer.textContent = span.textContent;
+        const displayText = text.length > 100 ? text.slice(0, 100) + '...' : text;
+        textContainer.textContent = displayText.replace(/\s+/g, ' ');
         
         const deleteButton = document.createElement('button');
         deleteButton.className = 'highlight-delete';
@@ -339,19 +350,27 @@ function updateHighlightsList() {
         
         // Add click handlers
         textContainer.addEventListener('click', () => {
-            span.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            span.style.transition = 'background-color 0.3s';
-            const originalColor = span.style.backgroundColor;
-            span.style.backgroundColor = 'rgba(255, 255, 0, 0.8)';
-            setTimeout(() => {
-                span.style.backgroundColor = originalColor;
-            }, 1000);
+            // Only scroll to highlight if it still exists in the document
+            if (document.body.contains(span)) {
+                span.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                span.style.transition = 'background-color 0.3s';
+                const originalColor = span.style.backgroundColor;
+                span.style.backgroundColor = 'rgba(255, 255, 0, 0.8)';
+                setTimeout(() => {
+                    span.style.backgroundColor = originalColor;
+                }, 1000);
+            } else {
+                // Remove this item if the highlight no longer exists
+                item.remove();
+            }
         });
         
         deleteButton.addEventListener('click', () => {
-            span.outerHTML = span.textContent;
+            if (document.body.contains(span)) {
+                span.outerHTML = span.textContent;
+            }
+            item.remove();
             saveHighlights();
-            updateHighlightsList();
         });
         
         item.appendChild(textContainer);
@@ -400,9 +419,18 @@ panel.querySelector('.close-panel').addEventListener('click', () => {
 // Update download functionality
 function downloadHighlights() {
     const highlights = [];
-    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
-        highlights.push(span.textContent);
+    // Only get highlights with our specific class and non-empty content
+    document.querySelectorAll(`span.${HIGHLIGHT_CLASS}`).forEach(span => {
+        const text = span.textContent.trim();
+        if (text) {
+            highlights.push(text);
+        }
     });
+
+    // Skip download if no valid highlights
+    if (highlights.length === 0) {
+        return;
+    }
 
     // Create metadata and content
     const metadata = {
@@ -482,7 +510,8 @@ function restoreHighlights() {
 
                         const span = document.createElement('span');
                         span.style.backgroundColor = isExtensionEnabled ? highlight.color : 'transparent';
-                        span.dataset.originalColor = highlight.color;  // Store original color
+                        span.dataset.originalColor = highlight.color;
+                        span.classList.add(HIGHLIGHT_CLASS);
                         
                         try {
                             range.surroundContents(span);
