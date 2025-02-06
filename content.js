@@ -186,6 +186,8 @@ popup.addEventListener('mouseleave', function() {
 
 // Handle text selection
 document.addEventListener('mouseup', function(e) {
+    if (!isExtensionEnabled) return;  // Skip if disabled
+    
     const selection = window.getSelection();
     
     // Skip if selection was made by double click
@@ -235,6 +237,31 @@ function generateHighlightId() {
     return `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+let isExtensionEnabled = true;
+
+// Function to toggle visibility of all highlights
+function toggleHighlightsVisibility(show) {
+    document.querySelectorAll('span[style*="background-color"]').forEach(span => {
+        span.style.backgroundColor = show ? span.dataset.originalColor : 'transparent';
+    });
+}
+
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "toggleExtension") {
+        isExtensionEnabled = request.isEnabled;
+        
+        // Hide popup and panel if disabling
+        if (!isExtensionEnabled) {
+            popup.style.display = 'none';
+            panel.style.display = 'none';
+        }
+        
+        // Toggle visibility of existing highlights
+        toggleHighlightsVisibility(isExtensionEnabled);
+    }
+});
+
 // Update the click handler for the popup
 popup.addEventListener('click', function(e) {
     e.stopPropagation();
@@ -244,19 +271,19 @@ popup.addEventListener('click', function(e) {
         
         if (currentHighlightedSpan) {
             currentHighlightedSpan.style.backgroundColor = color;
+            currentHighlightedSpan.dataset.originalColor = color;  // Store original color
             saveHighlights();
             updateHighlightsList();
-        } else if (currentSelection) {
+        } else if (currentSelection && isExtensionEnabled) {
             try {
                 const range = currentSelection.range;
                 const span = document.createElement('span');
                 span.style.backgroundColor = color;
+                span.dataset.originalColor = color;  // Store original color
                 
-                // Try to wrap the selection, if it fails, use a fallback method
                 try {
                     range.surroundContents(span);
                 } catch (e) {
-                    // Fallback: extract and reinsert
                     const extracted = range.extractContents();
                     span.appendChild(extracted);
                     range.insertNode(span);
@@ -454,19 +481,18 @@ function restoreHighlights() {
                         range.setEnd(node, startIndex + highlight.text.length);
 
                         const span = document.createElement('span');
-                        span.style.backgroundColor = highlight.color;
+                        span.style.backgroundColor = isExtensionEnabled ? highlight.color : 'transparent';
+                        span.dataset.originalColor = highlight.color;  // Store original color
                         
                         try {
                             range.surroundContents(span);
-                            break; // Found and highlighted, move to next
+                            break;
                         } catch (error) {
-                            // Skip if we can't highlight this instance
                             console.log('Could not restore highlight:', error);
                         }
                     }
                 }
             } catch (error) {
-                // Skip this highlight if it fails
                 console.log('Could not restore highlight:', error);
             }
         });
