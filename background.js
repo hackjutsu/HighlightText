@@ -82,4 +82,12 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       console.log('Error syncing state:', error);
     }
   }
+});
+
+// Add message handler for getting initial state
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "getState") {
+        sendResponse({ isEnabled: isEnabled });
+    }
+    return true;  // Required for async response
 }); 

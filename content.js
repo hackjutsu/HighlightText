@@ -156,6 +156,9 @@ const HIGHLIGHT_CLASS = 'text-highlighter-extension';
 
 // Show popup when hovering over highlighted text
 document.addEventListener('mouseover', function(e) {
+    // Don't show popup if extension is disabled
+    if (!isExtensionEnabled) return;
+    
     // Don't show hover menu if there's an active text selection
     const selection = window.getSelection();
     if (selection.toString().length > 0) return;
@@ -189,17 +192,15 @@ popup.addEventListener('mouseleave', function() {
 
 // Handle text selection
 document.addEventListener('mouseup', function(e) {
-    if (!isExtensionEnabled) return;  // Skip if disabled
-    
-    const selection = window.getSelection();
-    
-    // Skip if selection was made by double click
-    if (e.detail > 1) {
+    // Skip if extension is disabled or selection was made by double click
+    if (!isExtensionEnabled || e.detail > 1) {
         popup.style.display = 'none';
         currentSelection = null;
         currentHighlightedSpan = null;
         return;
     }
+    
+    const selection = window.getSelection();
     
     if (selection.toString().length > 0 && !popup.contains(e.target)) {
         // Store the selection
@@ -240,7 +241,7 @@ function generateHighlightId() {
     return `highlight-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
-let isExtensionEnabled = true;
+let isExtensionEnabled = false;  // Default to disabled
 
 // Function to toggle visibility of all highlights
 function toggleHighlightsVisibility(show) {
@@ -251,19 +252,33 @@ function toggleHighlightsVisibility(show) {
 
 // Update the restore panel state function
 function restorePanelState() {
+    if (!chrome?.storage?.local) {
+        console.log('Storage API not available');
+        return;
+    }
+
     // Don't restore panel if extension is disabled
     if (!isExtensionEnabled) {
         panel.style.display = 'none';
         return;
     }
 
-    chrome.storage.local.get([`${window.location.href}_panel`], function(result) {
-        const isVisible = result[`${window.location.href}_panel`];
-        if (isVisible) {
-            panel.style.display = 'flex';
-            updateHighlightsList();
-        }
-    });
+    try {
+        chrome.storage.local.get([`${window.location.href}_panel`], function(result) {
+            if (chrome.runtime.lastError) {
+                console.log('Error restoring panel state:', chrome.runtime.lastError);
+                return;
+            }
+
+            const isVisible = result[`${window.location.href}_panel`];
+            if (isVisible) {
+                panel.style.display = 'flex';
+                updateHighlightsList();
+            }
+        });
+    } catch (error) {
+        console.log('Error accessing storage:', error);
+    }
 }
 
 // Update message listener to handle both extension toggle and state sync
@@ -411,9 +426,18 @@ function updateHighlightsList() {
 
 // Function to save panel state
 function savePanelState(isVisible) {
-    chrome.storage.local.set({
-        [`${window.location.href}_panel`]: isVisible
-    });
+    if (!chrome?.storage?.local) {
+        console.log('Storage API not available');
+        return;
+    }
+
+    try {
+        chrome.storage.local.set({
+            [`${window.location.href}_panel`]: isVisible
+        });
+    } catch (error) {
+        console.log('Error saving panel state:', error);
+    }
 }
 
 // Update download functionality
@@ -465,14 +489,30 @@ function downloadHighlights() {
 // Add click handler for download button
 panel.querySelector('.download-highlights').addEventListener('click', downloadHighlights);
 
-// Add to your initialization code (where you have setTimeout for restoreHighlights)
-setTimeout(() => {
-    restoreHighlights();
-    restorePanelState();
-}, 500);
+// Add initialization code to get the current state
+chrome.runtime.sendMessage({ action: "getState" }, function(response) {
+    if (chrome.runtime.lastError) {
+        console.log('Could not get initial state:', chrome.runtime.lastError);
+        return;
+    }
+    isExtensionEnabled = response.isEnabled;
+    
+    // Only restore highlights and panel if extension is enabled
+    if (isExtensionEnabled) {
+        setTimeout(() => {
+            restoreHighlights();
+            restorePanelState();
+        }, 500);
+    }
+});
 
-// Simplified save function
+// Update the save function to handle storage errors
 function saveHighlights() {
+    if (!chrome?.storage?.local) {
+        console.log('Storage API not available');
+        return;
+    }
+
     const highlights = [];
     document.querySelectorAll('span[style*="background-color"]').forEach(span => {
         highlights.push({
@@ -481,53 +521,71 @@ function saveHighlights() {
         });
     });
 
-    chrome.storage.local.set({
-        [window.location.href]: highlights
-    });
+    try {
+        chrome.storage.local.set({
+            [window.location.href]: highlights
+        });
+    } catch (error) {
+        console.log('Error saving highlights:', error);
+    }
 }
 
-// Simplified restore function
+// Update the restore function to handle storage errors
 function restoreHighlights() {
-    chrome.storage.local.get([window.location.href], function(result) {
-        const highlights = result[window.location.href] || [];
-        
-        highlights.forEach(highlight => {
-            try {
-                const walker = document.createTreeWalker(
-                    document.body,
-                    NodeFilter.SHOW_TEXT,
-                    null,
-                    false
-                );
+    if (!chrome?.storage?.local) {
+        console.log('Storage API not available');
+        return;
+    }
 
-                let node;
-                while (node = walker.nextNode()) {
-                    if (node.textContent.includes(highlight.text)) {
-                        const range = document.createRange();
-                        const startIndex = node.textContent.indexOf(highlight.text);
-                        range.setStart(node, startIndex);
-                        range.setEnd(node, startIndex + highlight.text.length);
+    try {
+        chrome.storage.local.get([window.location.href], function(result) {
+            if (chrome.runtime.lastError) {
+                console.log('Error restoring highlights:', chrome.runtime.lastError);
+                return;
+            }
 
-                        const span = document.createElement('span');
-                        span.style.backgroundColor = isExtensionEnabled ? highlight.color : 'transparent';
-                        span.dataset.originalColor = highlight.color;
-                        span.classList.add(HIGHLIGHT_CLASS);
-                        
-                        try {
-                            range.surroundContents(span);
-                            break;
-                        } catch (error) {
-                            console.log('Could not restore highlight:', error);
+            const highlights = result[window.location.href] || [];
+            
+            highlights.forEach(highlight => {
+                try {
+                    const walker = document.createTreeWalker(
+                        document.body,
+                        NodeFilter.SHOW_TEXT,
+                        null,
+                        false
+                    );
+
+                    let node;
+                    while (node = walker.nextNode()) {
+                        if (node.textContent.includes(highlight.text)) {
+                            const range = document.createRange();
+                            const startIndex = node.textContent.indexOf(highlight.text);
+                            range.setStart(node, startIndex);
+                            range.setEnd(node, startIndex + highlight.text.length);
+
+                            const span = document.createElement('span');
+                            span.style.backgroundColor = isExtensionEnabled ? highlight.color : 'transparent';
+                            span.dataset.originalColor = highlight.color;
+                            span.classList.add(HIGHLIGHT_CLASS);
+                            
+                            try {
+                                range.surroundContents(span);
+                                break;
+                            } catch (error) {
+                                console.log('Could not restore highlight:', error);
+                            }
                         }
                     }
+                } catch (error) {
+                    console.log('Could not restore highlight:', error);
                 }
-            } catch (error) {
-                console.log('Could not restore highlight:', error);
+            });
+
+            if (panel.style.display !== 'none') {
+                updateHighlightsList();
             }
         });
-
-        if (panel.style.display !== 'none') {
-            updateHighlightsList();
-        }
-    });
+    } catch (error) {
+        console.log('Error accessing storage:', error);
+    }
 } 
