@@ -17,7 +17,10 @@ document.body.insertAdjacentHTML('beforeend', popupHTML);
 const panelHTML = `
     <div id="highlights-panel" style="display: none;">
         <div class="panel-header">
-            <span>Highlights</span>
+            <div class="panel-title">
+                <span>Highlights</span>
+                <small class="panel-note">Some highlights may be lost after page reload. Please download highlights before closing the page.</small>
+            </div>
             <div class="panel-controls">
                 <button class="download-highlights" title="Download highlights">📥</button>
                 <button class="close-panel">×</button>
@@ -141,6 +144,16 @@ style.textContent = `
     }
     .download-highlights:hover {
         color: #000;
+    }
+    .panel-title {
+        display: flex;
+        flex-direction: column;
+    }
+    .panel-note {
+        font-size: 11px;
+        color: #666;
+        margin-top: 2px;
+        font-style: italic;
     }
 `;
 document.head.appendChild(style);
@@ -588,4 +601,10 @@ function restoreHighlights() {
     } catch (error) {
         console.log('Error accessing storage:', error);
     }
-} 
+}
+
+// Add close panel button handler
+panel.querySelector('.close-panel').addEventListener('click', () => {
+    panel.style.display = 'none';
+    savePanelState(false);
+}); 
