@@ -1,4 +1,4 @@
-let isEnabled = true;
+let isEnabled = false;
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(() => {
@@ -35,15 +35,18 @@ chrome.action.onClicked.addListener((tab) => {
 
 // Handle context menu clicks
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "togglePanel" && !tab.url.startsWith('chrome://')) {
-    try {
-      chrome.tabs.sendMessage(tab.id, { action: "toggleHighlightsPanel" }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.log('Could not toggle panel:', chrome.runtime.lastError);
-        }
-      });
-    } catch (error) {
-      console.log('Error toggling panel:', error);
+  if (info.menuItemId === "togglePanel" && tab?.url && !tab.url.startsWith('chrome://')) {
+    // Only allow panel toggle if extension is enabled
+    if (isEnabled) {
+      try {
+        chrome.tabs.sendMessage(tab.id, { action: "toggleHighlightsPanel" }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.log('Could not toggle panel:', chrome.runtime.lastError);
+          }
+        });
+      } catch (error) {
+        console.log('Error toggling panel:', error);
+      }
     }
   }
 });
@@ -61,4 +64,22 @@ function updateIcon() {
   };
   
   chrome.action.setIcon({ path });
-} 
+}
+
+// Add tab update listener to sync state on page load
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab?.url && !tab.url.startsWith('chrome://')) {
+    try {
+      chrome.tabs.sendMessage(tabId, {
+        action: "toggleExtension",
+        isEnabled: isEnabled
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.log('Could not sync state:', chrome.runtime.lastError);
+        }
+      });
+    } catch (error) {
+      console.log('Error syncing state:', error);
+    }
+  }
+}); 

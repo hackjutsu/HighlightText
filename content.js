@@ -249,7 +249,24 @@ function toggleHighlightsVisibility(show) {
     });
 }
 
-// Listen for messages from background script
+// Update the restore panel state function
+function restorePanelState() {
+    // Don't restore panel if extension is disabled
+    if (!isExtensionEnabled) {
+        panel.style.display = 'none';
+        return;
+    }
+
+    chrome.storage.local.get([`${window.location.href}_panel`], function(result) {
+        const isVisible = result[`${window.location.href}_panel`];
+        if (isVisible) {
+            panel.style.display = 'flex';
+            updateHighlightsList();
+        }
+    });
+}
+
+// Update message listener to handle both extension toggle and state sync
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "toggleExtension") {
         isExtensionEnabled = request.isEnabled;
@@ -258,10 +275,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (!isExtensionEnabled) {
             popup.style.display = 'none';
             panel.style.display = 'none';
+            // Save panel state as closed when disabling
+            savePanelState(false);
         }
         
         // Toggle visibility of existing highlights
         toggleHighlightsVisibility(isExtensionEnabled);
+    } else if (request.action === "toggleHighlightsPanel") {
+        // Only toggle panel if extension is enabled
+        if (isExtensionEnabled) {
+            const newDisplay = panel.style.display === 'none' ? 'flex' : 'none';
+            panel.style.display = newDisplay;
+            savePanelState(newDisplay === 'flex');
+            if (newDisplay === 'flex') {
+                updateHighlightsList();
+            }
+        }
     }
 });
 
@@ -386,35 +415,6 @@ function savePanelState(isVisible) {
         [`${window.location.href}_panel`]: isVisible
     });
 }
-
-// Function to restore panel state
-function restorePanelState() {
-    chrome.storage.local.get([`${window.location.href}_panel`], function(result) {
-        const isVisible = result[`${window.location.href}_panel`];
-        if (isVisible) {
-            panel.style.display = 'flex';
-            updateHighlightsList();
-        }
-    });
-}
-
-// Update the panel toggle handler
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "toggleHighlightsPanel") {
-        const newDisplay = panel.style.display === 'none' ? 'flex' : 'none';
-        panel.style.display = newDisplay;
-        savePanelState(newDisplay === 'flex');
-        if (newDisplay === 'flex') {
-            updateHighlightsList();
-        }
-    }
-});
-
-// Update the close panel button handler
-panel.querySelector('.close-panel').addEventListener('click', () => {
-    panel.style.display = 'none';
-    savePanelState(false);
-});
 
 // Update download functionality
 function downloadHighlights() {
