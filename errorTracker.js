@@ -9,21 +9,27 @@ const ErrorTracker = {
                 timestamp: new Date().toISOString(),
                 context: context,
                 message: this.sanitizeErrorMessage(error.message || 'Unknown error'),
-                version: chrome.runtime.getManifest().version
+                version: chrome.runtime.getManifest().version,
+                expiryDate: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)) // 30 days
             };
 
             chrome.storage.local.get(['errorLogs'], (result) => {
                 const logs = result.errorLogs || [];
-                logs.push({
-                    ...errorData,
-                    expiryDate: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)) // 30 days
+                
+                // Add new log
+                logs.push(errorData);
+                
+                // Clean up expired logs
+                const now = new Date();
+                const currentLogs = logs.filter(log => {
+                    const expiryDate = new Date(log.expiryDate);
+                    return expiryDate > now;
                 });
                 
-                // Remove expired logs
-                const currentLogs = logs.filter(log => new Date(log.expiryDate) > new Date());
-                
                 // Keep only last 50 unexpired logs
-                if (currentLogs.length > 50) currentLogs.shift();
+                if (currentLogs.length > 50) {
+                    currentLogs.splice(0, currentLogs.length - 50);
+                }
                 
                 chrome.storage.local.set({ errorLogs: currentLogs });
             });
@@ -39,8 +45,21 @@ const ErrorTracker = {
     },
 
     sanitizeErrorMessage: function(message) {
-        return message.replace(/https?:\/\/[^\s]+/g, '[URL]')
-                     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]');
+        if (!message) return 'Unknown error';
+        
+        return message
+            // Remove URLs
+            .replace(/https?:\/\/[^\s]+/g, '[URL]')
+            // Remove email addresses
+            .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL]')
+            // Remove IP addresses
+            .replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, '[IP]')
+            // Remove file paths
+            .replace(/[\/\\]?([a-zA-Z]:\\|~\/|\/).+?(?=\s|$)/g, '[PATH]')
+            // Remove query parameters
+            .replace(/\?[^\s]+/g, '[QUERY]')
+            // Remove numbers that might be sensitive (like ports, IDs)
+            .replace(/\b\d{4,}\b/g, '[NUMBER]');
     },
 
     export: function() {

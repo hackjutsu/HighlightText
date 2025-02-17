@@ -1,5 +1,8 @@
 let isEnabled = false;
 
+// Add at the top of background.js
+const FEEDBACK_FORM_URL = 'https://github.com/hackjutsu/HighlightText/issues';
+
 // Initialize extension
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
@@ -18,6 +21,9 @@ chrome.runtime.onInstalled.addListener((details) => {
   } catch (error) {
     ErrorTracker.track(error, 'extension_init');
   }
+
+  // Set up uninstall URL
+  chrome.runtime.setUninstallURL(FEEDBACK_FORM_URL);
 });
 
 // Handle extension icon click
@@ -85,4 +91,23 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ isEnabled: isEnabled });
     }
     return true;  // Required for async response
+});
+
+// Add cleanup function
+async function cleanupData() {
+    return new Promise((resolve) => {
+        chrome.storage.local.clear(() => {
+            resolve();
+        });
+    });
+}
+
+// Add message listener for cleanup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === "cleanupData") {
+        cleanupData().then(() => {
+            sendResponse({ success: true });
+        });
+        return true; // Required for async response
+    }
 }); 

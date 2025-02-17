@@ -94,7 +94,20 @@
         
         document.getElementById('decline-tracking').addEventListener('click', () => {
             chrome.storage.local.set({ errorTrackingConsent: false }, () => {
-                window.close();
+                // Clean up any existing logs when user declines
+                chrome.storage.local.remove(['errorLogs'], () => {
+                    window.close();
+                });
+            });
+        });
+
+        // Add cleanup on window unload
+        window.addEventListener('unload', () => {
+            // If user closes window without choosing, default to no tracking
+            chrome.storage.local.get(['errorTrackingConsent'], (result) => {
+                if (result.errorTrackingConsent === undefined) {
+                    chrome.storage.local.set({ errorTrackingConsent: false });
+                }
             });
         });
     </script>
