@@ -32,6 +32,5 @@
   "web_accessible_resources": [{
     "resources": ["welcome.html"],
     "matches": ["<all_urls>"]
-  }],
-  "privacy_policy": "https://github.com/hackjutsu/HighlightText/blob/main/PRIVACY.md"
+  }]
 } 
