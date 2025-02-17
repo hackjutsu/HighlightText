@@ -46,7 +46,7 @@ The text storage and reload feature does not work on some websites or the select
 - All data is automatically removed on uninstall
 
 ## Contributing
-Found a bug or want to suggest a feature? Please [open an issue](https://github.com/hackjutsu/text-highlighter/issues).
+Found a bug or want to suggest a feature? Please [open an issue](https://github.com/hackjutsu/HighlightText/issues).
 
 ## License
 [MIT License](LICENSE)

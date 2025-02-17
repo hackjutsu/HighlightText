@@ -35,7 +35,7 @@ With your explicit consent, we collect:
 - No third-party data sharing
 
 ## Contact
-For questions about this privacy policy, please [open an issue](https://github.com/hackjutsu/text-highlighter/issues) on our GitHub repository.
+For questions about this privacy policy, please [open an issue](https://github.com/hackjutsu/HighlightText/issues) on our GitHub repository.
 
 ## Changes
 We will notify users of privacy policy changes through our GitHub repository.
