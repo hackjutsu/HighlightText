@@ -106,10 +106,13 @@
 
         // Add cleanup on window unload
         window.addEventListener('unload', () => {
-            // If user closes window without choosing, default to no tracking
             chrome.storage.local.get(['errorTrackingConsent'], (result) => {
                 if (result.errorTrackingConsent === undefined) {
-                    chrome.storage.local.set({ errorTrackingConsent: false });
+                    chrome.storage.local.set({ errorTrackingConsent: false }, () => {
+                        if (chrome.runtime.lastError) {
+                            console.error('Error setting default consent:', chrome.runtime.lastError);
+                        }
+                    });
                 }
             });
         });

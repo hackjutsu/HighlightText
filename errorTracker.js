@@ -64,19 +64,23 @@ const ErrorTracker = {
 
     export: function() {
         chrome.storage.local.get(['errorLogs'], (result) => {
-            const logs = result.errorLogs || [];
-            if (logs.length === 0) return;
+            try {
+                const logs = result.errorLogs || [];
+                if (logs.length === 0) return;
 
-            const content = JSON.stringify(logs, null, 2);
-            const blob = new Blob([content], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `highlighter-logs-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+                const content = JSON.stringify(logs, null, 2);
+                const blob = new Blob([content], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `highlighter-logs-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error exporting logs:', error);
+            }
         });
     },
 
