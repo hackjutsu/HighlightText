@@ -2,18 +2,19 @@ let isEnabled = false;
 
 // Initialize extension
 chrome.runtime.onInstalled.addListener(() => {
-  // Create extension icon context menu
-  chrome.contextMenus.create({
-    id: "togglePanel",
-    title: "Toggle Highlights Panel",
-    contexts: ["action"]  // This makes it appear in extension icon context menu
-  });
-
-  // Set initial icon state
-  updateIcon();
+  try {
+    chrome.contextMenus.create({
+      id: "togglePanel",
+      title: "Toggle Highlights Panel",
+      contexts: ["action"]
+    });
+    updateIcon();
+  } catch (error) {
+    ErrorTracker.track(error, 'extension_init');
+  }
 });
 
-// Handle extension icon click (enable/disable)
+// Handle extension icon click
 chrome.action.onClicked.addListener((tab) => {
   if (!tab.url.startsWith('chrome://')) {
     try {
@@ -24,7 +25,7 @@ chrome.action.onClicked.addListener((tab) => {
         isEnabled: isEnabled 
       });
     } catch (error) {
-      // Silent error handling
+      ErrorTracker.track(error, 'toggle_extension');
     }
   }
 });
@@ -37,7 +38,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       try {
         chrome.tabs.sendMessage(tab.id, { action: "toggleHighlightsPanel" });
       } catch (error) {
-        // Silent error handling
+        ErrorTracker.track(error, 'toggle_panel');
       }
     }
   }
@@ -67,7 +68,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         isEnabled: isEnabled
       });
     } catch (error) {
-      // Silent error handling
+      ErrorTracker.track(error, 'tab_update');
     }
   }
 });
