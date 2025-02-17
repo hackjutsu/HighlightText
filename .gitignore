@@ -1,0 +1,37 @@
+# Development files
+node_modules/
+.DS_Store
+*.log
+*.zip
+.env
+.env.*
+.vscode/
+.idea/
+*.swp
+*.swo
+.editorconfig
+
+# Build/temp directories
+dist/
+build/
+temp/
+tmp/
+
+# Debug files
+debug/
+*.debug.js
+*.map
+
+# Version control
+.git/
+.gitattributes
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini 
