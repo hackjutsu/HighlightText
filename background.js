@@ -1,7 +1,13 @@
 let isEnabled = false;
 
 // Initialize extension
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('welcome.html')
+    });
+  }
+  
   try {
     chrome.contextMenus.create({
       id: "togglePanel",
