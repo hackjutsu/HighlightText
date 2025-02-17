@@ -22,13 +22,9 @@ chrome.action.onClicked.addListener((tab) => {
       chrome.tabs.sendMessage(tab.id, { 
         action: "toggleExtension",
         isEnabled: isEnabled 
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.log('Could not toggle extension:', chrome.runtime.lastError);
-        }
       });
     } catch (error) {
-      console.log('Error toggling extension:', error);
+      // Silent error handling
     }
   }
 });
@@ -39,13 +35,9 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     // Only allow panel toggle if extension is enabled
     if (isEnabled) {
       try {
-        chrome.tabs.sendMessage(tab.id, { action: "toggleHighlightsPanel" }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.log('Could not toggle panel:', chrome.runtime.lastError);
-          }
-        });
+        chrome.tabs.sendMessage(tab.id, { action: "toggleHighlightsPanel" });
       } catch (error) {
-        console.log('Error toggling panel:', error);
+        // Silent error handling
       }
     }
   }
@@ -73,13 +65,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       chrome.tabs.sendMessage(tabId, {
         action: "toggleExtension",
         isEnabled: isEnabled
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.log('Could not sync state:', chrome.runtime.lastError);
-        }
       });
     } catch (error) {
-      console.log('Error syncing state:', error);
+      // Silent error handling
     }
   }
 });
