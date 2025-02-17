@@ -33,5 +33,5 @@
     "resources": ["welcome.html"],
     "matches": ["<all_urls>"]
   }],
-  "privacy_policy": "https://github.com/your-username/text-highlighter/blob/main/PRIVACY.md"
+  "privacy_policy": "https://github.com/hackjutsu/HighlightText/blob/main/PRIVACY.md"
 } 
