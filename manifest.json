@@ -3,6 +3,7 @@
   "name": "Text Highlighter",
   "version": "1.0",
   "description": "Highlight selected text on any webpage",
+  "minimum_chrome_version": "88",
   "permissions": [
     "activeTab",
     "storage",
@@ -32,5 +33,8 @@
   "web_accessible_resources": [{
     "resources": ["welcome.html"],
     "matches": ["<all_urls>"]
-  }]
+  }],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
 } 

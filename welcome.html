@@ -88,6 +88,9 @@
     <script>
         document.getElementById('accept-tracking').addEventListener('click', () => {
             chrome.storage.local.set({ errorTrackingConsent: true }, () => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error saving consent:', chrome.runtime.lastError);
+                }
                 window.close();
             });
         });

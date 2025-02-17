@@ -537,9 +537,14 @@ function saveHighlights() {
     try {
         chrome.storage.local.set({
             [window.location.href]: highlights
+        }, () => {
+            if (chrome.runtime.lastError) {
+                // Add error handling for quota exceeded
+                ErrorTracker.track(chrome.runtime.lastError, 'storage_quota_exceeded');
+            }
         });
     } catch (error) {
-        console.log('Error saving highlights:', error);
+        ErrorTracker.track(error, 'save_highlights');
     }
 }
 
