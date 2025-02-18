@@ -3,7 +3,7 @@
 ## Overview
 This is a simple Chrome extension that allows you to highlight text on any webpage. All highlights are stored locally on your device, ensuring your privacy.
 
-![alt text](./screenshots/screenshot.png)
+![alt text](./screenshots/screenshot.jpg)
 
 ## Features
 - Highlight text with different colors
